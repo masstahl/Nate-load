@@ -494,29 +494,80 @@ function renderProgress(loadsByDest, orders){
 }
 
 function renderLoadList(loads){
-  const list=document.getElementById('loadList');
-  document.getElementById('dayTotal').textContent = loads.length ? `(${loads.length} total)` : '';
-  if(!loads.length){ list.innerHTML='<div class="empty">No loads logged for this day yet.</div>'; return; }
+
+  const list =
+    document.getElementById('loadList');
+
+  document.getElementById('dayTotal').textContent =
+    loads.length
+      ? `(${loads.length} total)`
+      : '';
+
+  if(!loads.length){
+
+    list.innerHTML =
+      '<div class="empty">No loads logged for this day yet.</div>';
+
+    return;
+  }
+
   list.innerHTML='';
-  loads.slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).forEach(l=>{
-    const row=document.createElement('div');
-    row.className='load-item';
-    row.innerHTML = `
 
-  <div class="field-label">
-    ${field}
-  </div>
+  loads
+    .slice()
+    .sort((a,b)=>(a.ts||0)-(b.ts||0))
+    .forEach(l=>{
 
-  <div class="field-bar-wrap">
+      const row =
+        document.createElement('div');
 
-    <div
-      class="field-bar"
-      style="
-        width:${percent}%;
-        background:${color};
-      ">
+      row.className='load-item';
 
-      ${count}
+      row.innerHTML=`
+
+        <div
+          class="badge"
+          style="background:${destColor(l.dest)}">
+        </div>
+
+        <div class="info">
+
+          <b>${l.truck} / ${l.trailer}</b>
+
+          — ${l.field||''} ${l.variety||''}
+
+          <br>
+
+          <span class="dest-label">
+
+            ${destLabel(l.dest)}
+
+          </span>
+
+        </div>
+
+        <button
+          class="del-btn"
+          aria-label="Delete">
+
+          ✕
+
+        </button>
+
+      `;
+
+      row
+        .querySelector('.del-btn')
+        .addEventListener(
+          'click',
+          ()=>deleteLoad(l.id)
+        );
+
+      list.appendChild(row);
+
+    });
+
+}
 
     </div>
 
@@ -540,10 +591,11 @@ function renderLoadList(loads){
     list.appendChild(row);
   });
 }
+function renderFieldTotals(allLoads)
 
-function renderTrend(counts){
+function renderTrend(counts)
 
-function renderFieldTotals(allLoads){
+{
 
   const container =
     document.getElementById('fieldTrend');

@@ -425,6 +425,11 @@ function renderProgress(loadsByDest, orders){
       document.createElement('div');
 
     div.className='pcard';
+      row.innerHTML=`
+      <div class="badge" style="background:${destColor(l.dest)}"></div>
+      <div class="info"><b>${l.truck} / ${l.trailer}</b> — ${l.field||''} ${l.variety||''}<br><span class="dest-label">${destLabel(l.dest)}</span></div>
+      <button class="del-btn" aria-label="Delete">✕</button>
+    `;
 
     div.innerHTML=`
 

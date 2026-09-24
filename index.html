@@ -499,37 +499,7 @@ function renderLoadList(loads){
   if(!loads.length){ list.innerHTML='<div class="empty">No loads logged for this day yet.</div>'; return; }
   list.innerHTML='';
   loads.slice().sort((a,b)=>(a.ts||0)-(b.ts||0)).forEach(l=>{
-    const row=document.createElement('div');
-    row.className='load-item';
-    row.innerHTML = `
 
-  <div class="field-label">
-    ${field}
-  </div>
-
-  <div class="field-bar-wrap">
-
-    <div
-      class="field-bar"
-      style="
-        width:${percent}%;
-        background:${color};
-      ">
-
-      ${count}
-
-    </div>
-
-  </div>
-
-  <div
-    style="
-      width:50px;
-      text-align:right;
-      font-weight:700;
-    ">
-
-    ${count}
 
   </div>
 

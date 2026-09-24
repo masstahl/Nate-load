@@ -111,7 +111,47 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
   border-radius:50%;
   display:inline-block;
   margin-right:8px;
+}.field-chart{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
 }
+
+.field-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.field-label{
+  width:60px;
+  font-size:13px;
+  font-weight:700;
+  flex-shrink:0;
+}
+
+.field-bar-wrap{
+  flex:1;
+  height:24px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  border-radius:999px;
+  overflow:hidden;
+}
+
+.field-bar{
+  height:100%;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  padding-right:8px;
+  color:white;
+  font-size:12px;
+  font-weight:700;
+  min-width:40px;
+}
+
 
 .footer-note{
   font-size:11px;
@@ -467,102 +507,93 @@ function renderLoadList(loads){
 }
 
 function renderTrend(counts){
-  function renderFieldTotals(allLoads){
+
+function renderFieldTotals(allLoads){
 
   const container =
     document.getElementById('fieldTrend');
 
-  container.innerHTML='';
-
-  const fieldData={};
+  const totals = {};
 
   allLoads.forEach(load=>{
 
     if(!load.field) return;
 
-    if(!fieldData[load.field]){
-
-      fieldData[load.field]={
-        total:0,
-        pasco:0,
-        warden:0,
-        quincy:0
-      };
-    }
-
-    fieldData[load.field].total++;
-
-    fieldData[load.field][load.dest]++;
+    totals[load.field] =
+      (totals[load.field] || 0) + 1;
 
   });
 
-  const sorted =
-    Object.entries(fieldData)
-      .sort(
-        (a,b)=>
-          b[1].total -
-          a[1].total
-      );
+  const fields =
+    Object.entries(totals)
+      .sort((a,b)=>b[1]-a[1]);
 
-  if(!sorted.length){
+  if(!fields.length){
 
-    container.innerHTML=
-      '<div class="empty">No field history yet.</div>';
+    container.innerHTML =
+      '<div class="empty">No field data yet.</div>';
 
     return;
   }
 
-  sorted.forEach(([field,data])=>{
+  const max =
+    Math.max(
+      ...fields.map(
+        ([,count]) => count
+      ),
+      1
+    );
 
-    const card =
+  container.className =
+    'field-chart';
+
+  container.innerHTML='';
+
+  fields.forEach(([field,count])=>{
+
+    const percent =
+      (count/max) * 100;
+
+    const color =
+      getFieldColor(field);
+
+    const row =
       document.createElement('div');
 
-    card.className =
-      'field-summary';
+    row.className =
+      'field-row';
 
-    card.innerHTML=`
+    row.innerHTML = `
 
-      <div class="field-header">
+      <div class="field-label">
 
-        <div>
+        ${field}
 
-          <span
-            class="field-dot"
-            style="background:${getFieldColor(field)}">
-          </span>
+      </div>
 
-          Field ${field}
+      <div class="field-bar-wrap">
+
+        <div
+          class="field-bar"
+          style="
+            width:${percent}%;
+            background:${color};
+          ">
+
+          ${count}
 
         </div>
 
-        <div>
-          ${data.total} Loads
-        </div>
-
-      </div>
-
-      <div class="field-destination">
-        <span>Pasco</span>
-        <span>${data.pasco}</span>
-      </div>
-
-      <div class="field-destination">
-        <span>Warden</span>
-        <span>${data.warden}</span>
-      </div>
-
-      <div class="field-destination">
-        <span>Quincy</span>
-        <span>${data.quincy}</span>
       </div>
 
     `;
 
-    container.appendChild(card);
+    container.appendChild(row);
 
   });
 
 }
+
 
   const el=document.getElementById('trend');
   const dates=Object.keys(counts).sort().slice(-7);

@@ -83,7 +83,42 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .field-trend-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;}
 .field-trend-item:last-child{border-bottom:none;}
 .field-trend-item .count{font-weight:700;}
-.footer-note{font-size:11px;color:var(--muted);text-align:center;margin-top:4px;}
+.field-summary{
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px;
+  margin-bottom:8px;
+}
+
+.field-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-weight:700;
+}
+
+.field-destination{
+  display:flex;
+  justify-content:space-between;
+  margin-top:4px;
+  font-size:13px;
+  padding-left:18px;
+}
+
+.field-dot{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  display:inline-block;
+  margin-right:8px;
+}
+
+.footer-note{
+  font-size:11px;
+  color:var(--muted);
+  text-align:center;
+  margin-top:4px;
+}
 </style>
 </head>
 <body>
@@ -159,8 +194,9 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 <section class="card">
   <h2>Last 7 Days</h2>
   <div id="trend" class="trend"></div>
-  <div class="subhead">Loads by field</div>
-  <div id="fieldTrend" class="trend"></div>
+  <div class="subhead">Field Summary (Last 30 Days)</div>
+<div id="fieldTrend"></div>
+
 </section>
 
 <p class="footer-note">Data is saved only in this browser, on this device.</p>
@@ -195,6 +231,19 @@ function getOrders(){ return readJSON('tt_orders', {}); }
 function setOrders(obj){ return writeJSON('tt_orders', obj); }
 function lastUsed(){ return readJSON('tt_last', {}); }
 function saveLastUsed(fieldA,fieldB,variety){ writeJSON('tt_last', {fieldA,fieldB,variety}); }
+function cleanupOldLoads(){
+
+  const cutoff =
+    Date.now() -
+    (30 * 24 * 60 * 60 * 1000);
+
+  const cleaned =
+    getLoads().filter(
+      l => (l.ts || 0) >= cutoff
+    );
+
+  setLoads(cleaned);
+}
 
 document.getElementById('dateInput').addEventListener('change', e=>{ currentDate=e.target.value; refresh(); });
 document.getElementById('prevDay').addEventListener('click', ()=>{ setDate(addDays(currentDate,-1)); });
@@ -254,27 +303,149 @@ function deleteLoad(id){
 
 function destColor(d){ return d==='pasco'?'var(--pasco)':d==='warden'?'var(--warden)':'var(--quincy)'; }
 function destLabel(d){ return d==='pasco'?'Pasco':d==='warden'?'Warden':'Quincy'; }
+function getFieldColor(field){
+
+  const colors=[
+    '#0891b2',
+    '#7c3aed',
+    '#d97706',
+    '#dc2626',
+    '#16a34a',
+    '#2563eb',
+    '#db2777',
+    '#ea580c'
+  ];
+
+  let hash=0;
+
+  for(let i=0;i<field.length;i++){
+    hash+=field.charCodeAt(i);
+  }
+
+  return colors[
+    hash % colors.length
+  ];
+}
 
 function renderProgress(loadsByDest, orders){
-  const wrap=document.getElementById('progressCards');
+
+  const wrap =
+    document.getElementById('progressCards');
+
   wrap.innerHTML='';
-  ['pasco','warden','quincy'].forEach(d=>{
-    const loaded=loadsByDest[d]||0;
-    const ordered=orders[d]||0;
-    const remaining=Math.max(ordered-loaded,0);
-    const pct=ordered>0 ? Math.min(loaded/ordered*100,100) : (loaded>0?100:0);
-    const div=document.createElement('div');
-    div.className='pcard';
-    div.innerHTML=`
-      <div class="top">
-        <span class="name" style="color:${destColor(d)}">${destLabel(d)}</span>
-        <span class="nums">${loaded} of ${ordered} loaded</span>
-      </div>
-      <div class="remaining" style="color:${remaining>0?'var(--text)':'var(--good)'}">${remaining>0? remaining+' left' : (ordered>0?'Complete':'—')}</div>
-      <div class="track"><div class="fill" style="width:${pct}%;background:${destColor(d)}"></div></div>
-    `;
-    wrap.appendChild(div);
+
+  const destinations=[
+    'pasco',
+    'warden',
+    'quincy'
+  ];
+
+  destinations.sort((a,b)=>{
+
+    const remainingA =
+      Math.max(
+        (orders[a]||0) -
+        (loadsByDest[a]||0),
+        0
+      );
+
+    const remainingB =
+      Math.max(
+        (orders[b]||0) -
+        (loadsByDest[b]||0),
+        0
+      );
+
+    return remainingB - remainingA;
   });
+
+  destinations.forEach(d=>{
+
+    const loaded =
+      loadsByDest[d] || 0;
+
+    const ordered =
+      orders[d] || 0;
+
+    const remaining =
+      Math.max(
+        ordered-loaded,
+        0
+      );
+
+    const pct =
+      ordered > 0
+        ? Math.min(
+            loaded/ordered*100,
+            100
+          )
+        : 0;
+
+    const div =
+      document.createElement('div');
+
+    div.className='pcard';
+
+    div.innerHTML=`
+
+      <div class="top">
+
+        <span
+          class="name"
+          style="color:${destColor(d)}">
+
+          ${destLabel(d)}
+
+        </span>
+
+        <span class="nums">
+
+          ${loaded} of ${ordered} loaded
+
+        </span>
+
+      </div>
+
+      <div
+        class="remaining"
+        style="
+          color:${
+            remaining>0
+              ? 'var(--danger)'
+              : 'var(--good)'
+          };
+        ">
+
+        ${
+          remaining>0
+            ? remaining + ' left'
+            : (
+                ordered>0
+                ? 'Complete'
+                : '—'
+              )
+        }
+
+      </div>
+
+      <div class="track">
+
+        <div
+          class="fill"
+          style="
+            width:${pct}%;
+            background:${destColor(d)};
+          ">
+        </div>
+
+      </div>
+
+    `;
+
+    wrap.appendChild(div);
+
+  });
+
 }
 
 function renderLoadList(loads){
@@ -296,6 +467,103 @@ function renderLoadList(loads){
 }
 
 function renderTrend(counts){
+  function renderFieldTotals(allLoads){
+
+  const container =
+    document.getElementById('fieldTrend');
+
+  container.innerHTML='';
+
+  const fieldData={};
+
+  allLoads.forEach(load=>{
+
+    if(!load.field) return;
+
+    if(!fieldData[load.field]){
+
+      fieldData[load.field]={
+        total:0,
+        pasco:0,
+        warden:0,
+        quincy:0
+      };
+    }
+
+    fieldData[load.field].total++;
+
+    fieldData[load.field][load.dest]++;
+
+  });
+
+  const sorted =
+    Object.entries(fieldData)
+      .sort(
+        (a,b)=>
+          b[1].total -
+          a[1].total
+      );
+
+  if(!sorted.length){
+
+    container.innerHTML=
+      '<div class="empty">No field history yet.</div>';
+
+    return;
+  }
+
+  sorted.forEach(([field,data])=>{
+
+    const card =
+      document.createElement('div');
+
+    card.className =
+      'field-summary';
+
+    card.innerHTML=`
+
+      <div class="field-header">
+
+        <div>
+
+          <span
+            class="field-dot"
+            style="background:${getFieldColor(field)}">
+          </span>
+
+          Field ${field}
+
+        </div>
+
+        <div>
+          ${data.total} Loads
+        </div>
+
+      </div>
+
+      <div class="field-destination">
+        <span>Pasco</span>
+        <span>${data.pasco}</span>
+      </div>
+
+      <div class="field-destination">
+        <span>Warden</span>
+        <span>${data.warden}</span>
+      </div>
+
+      <div class="field-destination">
+        <span>Quincy</span>
+        <span>${data.quincy}</span>
+      </div>
+
+    `;
+
+    container.appendChild(card);
+
+  });
+
+}
+
   const el=document.getElementById('trend');
   const dates=Object.keys(counts).sort().slice(-7);
   if(!dates.length){ el.innerHTML='<div class="empty">No history yet.</div>'; return; }
@@ -352,19 +620,34 @@ function refresh(){
   allLoads.forEach(l=>{ counts[l.date]=(counts[l.date]||0)+1; });
   counts[currentDate]=counts[currentDate]||0;
   renderTrend(counts);
+  renderFieldTotals(allLoads);
+
 
   if(!storageOK) showStatus('Your browser is blocking local storage — data won\'t be saved.');
   else hideStatus();
 }
 
 function init(){
+
+  cleanupOldLoads();
+
   document.getElementById('dateInput').value=currentDate;
+
   const last=lastUsed();
-  if(last.fieldA) document.getElementById('fFieldA').value=last.fieldA;
-  if(last.fieldB) document.getElementById('fFieldB').value=last.fieldB;
-  if(last.variety) document.getElementById('fVariety').value=last.variety;
+
+  if(last.fieldA)
+    document.getElementById('fFieldA').value=last.fieldA;
+
+  if(last.fieldB)
+    document.getElementById('fFieldB').value=last.fieldB;
+
+  if(last.variety)
+    document.getElementById('fVariety').value=last.variety;
+
   refresh();
+
 }
+
 init();
 </script>
 </body>

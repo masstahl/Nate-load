@@ -425,8 +425,7 @@ function renderProgress(loadsByDest, orders){
       document.createElement('div');
 
     div.className='pcard';
-      row.innerHTML=`
-      <div class="badge" style="background:${destColor(l.dest)}"></div>
+      
       <div class="info"><b>${l.truck} / ${l.trailer}</b> — ${l.field||''} ${l.variety||''}<br><span class="dest-label">${destLabel(l.dest)}</span></div>
       <button class="del-btn" aria-label="Delete">✕</button>
     `;
@@ -565,9 +564,7 @@ function renderLoadList(loads){
 
       list.appendChild(row);
 
-    });
-
-}
+    }
 
     </div>
 
@@ -591,7 +588,82 @@ function renderLoadList(loads){
     list.appendChild(row);
   });
 }
-function renderFieldTotals(allLoads)
+function renderFieldTotals(allLoads){
+
+  const container =
+    document.getElementById('fieldTrend');
+
+  const totals = {};
+
+  allLoads.forEach(load=>{
+
+    if(!load.field) return;
+
+    totals[load.field] =
+      (totals[load.field] || 0) + 1;
+
+  });
+
+  const fields =
+    Object.entries(totals)
+      .sort((a,b)=>b[1]-a[1]);
+
+  if(!fields.length){
+
+    container.innerHTML =
+      '<div class="empty">No field data yet.</div>';
+
+    return;
+  }
+
+  const max =
+    Math.max(
+      ...fields.map(([,count])=>count),
+      1
+    );
+
+  container.className='field-chart';
+  container.innerHTML='';
+
+  fields.forEach(([field,count])=>{
+
+    const percent =
+      (count/max)*100;
+
+    const row =
+      document.createElement('div');
+
+    row.className='field-row';
+
+    row.innerHTML=`
+
+      <div class="field-label">
+        ${field}
+      </div>
+
+      <div class="field-bar-wrap">
+
+        <div
+          class="field-bar"
+          style="
+            width:${percent}%;
+            background:${getFieldColor(field)};
+          ">
+
+          ${count}
+
+        </div>
+
+      </div>
+
+    `;
+
+    container.appendChild(row);
+
+  });
+
+}
+
 
 function renderTrend(counts)
 
